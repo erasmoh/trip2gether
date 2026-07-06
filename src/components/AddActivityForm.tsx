@@ -46,7 +46,7 @@ export function AddActivityForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-xl border border-dashed border-slate-300 py-3 text-sm font-medium text-slate-500 transition hover:border-sky-400 hover:text-sky-600"
+        className="w-full rounded-lg border border-dashed border-line py-3 text-sm font-medium text-muted transition hover:border-clay hover:text-clay"
       >
         + Agregar actividad
       </button>
@@ -54,15 +54,16 @@ export function AddActivityForm({
   }
 
   const field =
-    "rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400";
+    "rounded-lg border border-line bg-paper-raised px-3 py-1.5 text-sm text-ink outline-none focus:border-clay focus:ring-1 focus:ring-clay";
+  const label = "flex flex-col gap-1 eyebrow text-muted";
 
   return (
     <form
       onSubmit={submit}
-      className="space-y-3 rounded-xl border border-sky-200 bg-sky-50/50 p-4"
+      className="space-y-3 rounded-lg border border-clay/30 bg-clay-soft/40 p-4"
     >
       <div className="flex flex-wrap gap-3">
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+        <label className={label}>
           Inicio
           <input
             type="time"
@@ -72,7 +73,7 @@ export function AddActivityForm({
             required
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+        <label className={label}>
           Fin (opcional)
           <input
             type="time"
@@ -81,7 +82,7 @@ export function AddActivityForm({
             className={field}
           />
         </label>
-        <label className="flex flex-1 flex-col gap-1 text-xs font-medium text-slate-500">
+        <label className={`${label} flex-1`}>
           Título
           <input
             value={title}
@@ -93,7 +94,7 @@ export function AddActivityForm({
         </label>
       </div>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+      <label className={label}>
         Ubicación (opcional)
         <input
           value={location}
@@ -103,7 +104,7 @@ export function AddActivityForm({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
+      <label className={label}>
         Descripción
         <textarea
           value={description}
@@ -121,14 +122,14 @@ export function AddActivityForm({
             reset();
             setOpen(false);
           }}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100"
+          className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={!title.trim()}
-          className="rounded-lg bg-sky-500 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-sky-600 disabled:opacity-40"
+          className="rounded-lg bg-clay px-4 py-1.5 text-sm font-medium text-white transition hover:bg-clay/90 disabled:opacity-40"
         >
           Guardar
         </button>

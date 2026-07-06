@@ -63,30 +63,30 @@ export default function LoginPage() {
   }
 
   const field =
-    "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400";
+    "w-full rounded-lg border border-line bg-paper-raised px-3 py-2 text-sm text-ink outline-none focus:border-clay focus:ring-1 focus:ring-clay";
   const primaryBtn =
-    "w-full rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:opacity-40";
+    "w-full rounded-lg bg-ink px-4 py-2.5 text-sm font-semibold text-paper transition hover:bg-ink/85 disabled:opacity-40";
 
   return (
-    <div className="mx-auto max-w-sm py-10">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-900">
-          Entra a trip<span className="text-sky-500">2</span>gether
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Acceso sin contraseña. Te enviamos un código de un solo uso a tu
-          correo (solo para personas invitadas).
-        </p>
+    <div className="mx-auto max-w-sm py-14">
+      <p className="eyebrow text-clay">Acceso solo por invitación</p>
+      <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-tight text-ink">
+        Entra a trip<span className="italic text-clay">2</span>gether
+      </h1>
+      <p className="mt-3 text-[15px] leading-relaxed text-ink-soft">
+        Sin contraseñas. Te enviamos un código de un solo uso a tu correo.
+      </p>
 
+      <div className="mt-8 rounded-lg border border-line bg-paper-raised p-6">
         {error && (
-          <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+          <p className="mb-4 border-l-2 border-clay bg-clay-soft/60 px-3 py-2 text-sm text-ink-soft">
             {error}
           </p>
         )}
 
         {step === "email" && (
-          <form onSubmit={submitEmail} className="mt-5 space-y-3">
-            <label className="block text-sm font-medium text-slate-600">
+          <form onSubmit={submitEmail} className="space-y-3">
+            <label className="block eyebrow text-muted">
               Correo electrónico
               <input
                 type="email"
@@ -100,7 +100,7 @@ export default function LoginPage() {
             <button type="submit" className={primaryBtn}>
               Enviar código
             </button>
-            <p className="text-center text-xs text-slate-400">
+            <p className="text-center text-xs text-muted">
               Prueba con ana@example.com (registrada) o carla@example.com (alta
               nueva).
             </p>
@@ -108,17 +108,17 @@ export default function LoginPage() {
         )}
 
         {step === "code" && (
-          <form onSubmit={submitCode} className="mt-5 space-y-3">
+          <form onSubmit={submitCode} className="space-y-3">
             {devCode && (
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              <p className="rounded-lg border border-line bg-paper px-3 py-2 text-xs text-ink-soft">
                 Modo demo (sin email real): tu código es{" "}
-                <span className="font-mono font-bold">{devCode}</span>
+                <span className="font-mono font-bold text-clay">{devCode}</span>
               </p>
             )}
-            <p className="text-sm text-slate-500">
-              Enviamos un código de 6 dígitos a <strong>{email}</strong>.
+            <p className="text-sm text-ink-soft">
+              Enviamos un código de 6 dígitos a <strong className="text-ink">{email}</strong>.
             </p>
-            <label className="block text-sm font-medium text-slate-600">
+            <label className="block eyebrow text-muted">
               Código
               <input
                 inputMode="numeric"
@@ -139,7 +139,7 @@ export default function LoginPage() {
                 setStep("email");
                 setError(null);
               }}
-              className="w-full text-center text-xs text-slate-400 hover:text-slate-600"
+              className="eyebrow w-full text-center text-muted transition hover:text-ink"
             >
               ← Usar otro correo
             </button>
@@ -147,11 +147,11 @@ export default function LoginPage() {
         )}
 
         {step === "register" && (
-          <form onSubmit={submitRegister} className="mt-5 space-y-3">
-            <p className="text-sm text-slate-500">
+          <form onSubmit={submitRegister} className="space-y-3">
+            <p className="text-sm text-ink-soft">
               ¡Bienvenido/a! Es tu primer ingreso. Completa tu registro.
             </p>
-            <label className="block text-sm font-medium text-slate-600">
+            <label className="block eyebrow text-muted">
               Nombre completo
               <input
                 required

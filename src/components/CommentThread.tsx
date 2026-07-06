@@ -25,30 +25,28 @@ export function CommentThread({
   }
 
   return (
-    <div className="mt-3 border-t border-slate-100 pt-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Comentarios ({comments.length})
-      </p>
+    <div className="mt-4 border-t border-line pt-4">
+      <p className="eyebrow mb-3 text-muted">Comentarios · {comments.length}</p>
 
       <ul className="space-y-2">
         {comments.map((c) => (
           <li key={c.id} className="flex gap-2">
             <Avatar user={c.user} size="sm" />
-            <div className="flex-1 rounded-lg bg-slate-50 px-3 py-2">
+            <div className="flex-1 rounded-lg border border-line bg-paper px-3 py-2">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-medium text-slate-800">
+                <span className="text-sm font-medium text-ink">
                   {c.user.fullName}
                 </span>
-                <span className="text-[11px] text-slate-400">
+                <span className="font-mono text-[11px] text-muted">
                   {formatRelativeTime(c.createdAt)}
                 </span>
               </div>
-              <p className="text-sm text-slate-600">{c.body}</p>
+              <p className="text-sm text-ink-soft">{c.body}</p>
             </div>
           </li>
         ))}
         {comments.length === 0 && (
-          <li className="text-sm text-slate-400">
+          <li className="text-sm text-muted">
             Sé el primero en comentar esta actividad.
           </li>
         )}
@@ -59,12 +57,12 @@ export function CommentThread({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           placeholder="Escribe un comentario…"
-          className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400"
+          className="flex-1 rounded-lg border border-line bg-paper-raised px-3 py-1.5 text-sm text-ink outline-none focus:border-clay focus:ring-1 focus:ring-clay"
         />
         <button
           type="submit"
           disabled={!body.trim()}
-          className="rounded-lg bg-sky-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-sky-600 disabled:opacity-40"
+          className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper transition hover:bg-ink/85 disabled:opacity-40"
         >
           Enviar
         </button>

@@ -11,65 +11,77 @@ export default function HomePage() {
   const { visibleTrips, getMembers } = useStore();
 
   if (!user) {
-    return <p className="py-16 text-center text-slate-400">Cargando…</p>;
+    return <p className="py-16 text-center text-muted">Cargando…</p>;
   }
   const currentUser = user;
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 p-6 text-white sm:p-8">
-        <h1 className="text-2xl font-bold sm:text-3xl">
-          Hola, {currentUser.fullName.split(" ")[0]} 👋
+    <div className="space-y-10">
+      <section className="border-b border-line pb-8">
+        <p className="eyebrow text-clay">Buen viaje, {currentUser.fullName.split(" ")[0]}</p>
+        <h1 className="mt-3 max-w-2xl font-display text-4xl leading-[1.05] tracking-tight text-ink sm:text-5xl">
+          Tus planes, en un solo{" "}
+          <span className="italic text-clay">itinerario</span>.
         </h1>
-        <p className="mt-1 max-w-xl text-sky-50">
-          Estos son tus viajes. Solo ves los planes a los que te han invitado.
-          Abre uno para coordinar la agenda día a día con tu grupo.
+        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-soft">
+          Solo ves los viajes a los que te han invitado. Abre uno para coordinar
+          la agenda día a día con tu grupo.
         </p>
       </section>
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-slate-800">
-          Mis viajes ({visibleTrips.length})
-        </h2>
+      <div className="flex items-baseline justify-between border-b border-line pb-2">
+        <h2 className="eyebrow text-muted">Mis viajes</h2>
+        <span className="font-display text-lg text-ink">
+          {String(visibleTrips.length).padStart(2, "0")}
+        </span>
       </div>
 
       {visibleTrips.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-          No estás en ningún viaje todavía. Cambia de usuario arriba para ver
-          otros planes 😉
+        <div className="border border-dashed border-line bg-paper-raised p-10 text-center text-sm text-muted">
+          No estás en ningún viaje todavía.
         </div>
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid gap-5 sm:grid-cols-2">
           {visibleTrips.map((trip) => {
             const members = getMembers(trip.id);
             return (
               <li key={trip.id}>
                 <Link
                   href={`/trips/${trip.id}`}
-                  className="group block overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-md"
+                  className="group block overflow-hidden rounded-lg border border-line bg-paper-raised transition duration-200 hover:-translate-y-1 hover:border-ink/25 hover:shadow-[0_18px_40px_-20px_rgba(25,20,16,0.35)]"
                 >
                   <div
-                    className="h-24 w-full"
+                    className="relative h-28 w-full"
                     style={{ backgroundColor: trip.coverColor }}
-                  />
-                  <div className="p-4">
-                    <h3 className="font-semibold text-slate-900 group-hover:text-sky-600">
+                  >
+                    <span className="eyebrow absolute bottom-3 left-4 text-white/90 mix-blend-plus-lighter">
+                      {tripLengthDays(trip.startDate, trip.endDate)} días
+                    </span>
+                  </div>
+                  <div className="p-5">
+                    <h3 className="font-display text-xl leading-tight tracking-tight text-ink">
                       {trip.name}
                     </h3>
-                    <p className="text-sm text-slate-500">{trip.destination}</p>
-                    <p className="mt-2 text-xs font-medium text-slate-400">
-                      {formatDateRange(trip.startDate, trip.endDate)} ·{" "}
-                      {tripLengthDays(trip.startDate, trip.endDate)} días
+                    <p className="mt-1 text-sm text-ink-soft">
+                      {trip.destination}
                     </p>
-                    <div className="mt-3 flex -space-x-2">
-                      {members.slice(0, 5).map((m) => (
-                        <span
-                          key={m.id}
-                          className="rounded-full ring-2 ring-white"
-                        >
-                          <Avatar user={m.user} size="sm" />
-                        </span>
-                      ))}
+                    <p className="eyebrow mt-3 text-muted">
+                      {formatDateRange(trip.startDate, trip.endDate)}
+                    </p>
+                    <div className="mt-4 flex items-center justify-between">
+                      <div className="flex -space-x-2">
+                        {members.slice(0, 5).map((m) => (
+                          <span
+                            key={m.id}
+                            className="rounded-full ring-2 ring-paper-raised"
+                          >
+                            <Avatar user={m.user} size="sm" />
+                          </span>
+                        ))}
+                      </div>
+                      <span className="font-display text-lg text-clay opacity-0 transition group-hover:opacity-100">
+                        →
+                      </span>
                     </div>
                   </div>
                 </Link>

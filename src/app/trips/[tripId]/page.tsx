@@ -25,7 +25,7 @@ export default function TripPage({
   );
 
   if (!user) {
-    return <p className="py-16 text-center text-slate-400">Cargando…</p>;
+    return <p className="py-16 text-center text-muted">Cargando…</p>;
   }
 
   if (!trip) {
@@ -46,53 +46,58 @@ export default function TripPage({
   const dateTabs = buildDateRange(trip.startDate, trip.endDate);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Link
         href="/"
-        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"
+        className="eyebrow inline-flex items-center gap-1.5 text-muted transition hover:text-ink"
       >
         ← Todos mis viajes
       </Link>
 
-      <header
-        className="overflow-hidden rounded-2xl text-white"
-        style={{ backgroundColor: trip.coverColor }}
-      >
-        <div className="bg-black/10 p-6 sm:p-8">
-          <h1 className="text-2xl font-bold sm:text-3xl">{trip.name}</h1>
-          <p className="mt-1 text-white/90">{trip.destination}</p>
-          <p className="mt-2 text-sm text-white/80">
-            {formatDateRange(trip.startDate, trip.endDate)}
-          </p>
-          <p className="mt-3 max-w-2xl text-sm text-white/90">
-            {trip.description}
-          </p>
+      <header className="border-b border-line pb-8">
+        <div className="flex items-center gap-3">
+          <span
+            className="h-3 w-3 rounded-full"
+            style={{ backgroundColor: trip.coverColor }}
+          />
+          <p className="eyebrow text-muted">{trip.destination}</p>
         </div>
+        <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-tight text-ink sm:text-5xl">
+          {trip.name}
+        </h1>
+        <p className="eyebrow mt-4 text-clay">
+          {formatDateRange(trip.startDate, trip.endDate)}
+        </p>
+        <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
+          {trip.description}
+        </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
-        <section className="space-y-4">
+      <div className="grid gap-8 lg:grid-cols-[1fr_18rem]">
+        <section className="space-y-5">
           {!canEdit && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            <div className="border-l-2 border-clay bg-clay-soft/60 px-4 py-2.5 text-xs text-ink-soft">
               Tienes acceso de solo lectura. Pídele al organizador permisos de
               edición para modificar la agenda.
             </div>
           )}
 
           {/* Day tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex gap-2 overflow-x-auto border-b border-line pb-3">
             {dateTabs.map((date, i) => (
               <button
                 key={date}
                 type="button"
                 onClick={() => setActiveDate(date)}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                className={`shrink-0 rounded-full border px-4 py-1.5 text-sm transition ${
                   date === selectedDate
-                    ? "bg-slate-900 text-white"
-                    : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                    ? "border-ink bg-ink text-paper"
+                    : "border-line bg-paper-raised text-ink-soft hover:border-ink/30"
                 }`}
               >
-                <span className="mr-1 opacity-60">Día {i + 1}</span>
+                <span className="mr-1.5 font-mono text-[11px] opacity-60">
+                  D{i + 1}
+                </span>
                 {formatDayLabel(date)}
               </button>
             ))}
@@ -105,7 +110,7 @@ export default function TripPage({
                 <ActivityCard key={a.id} activity={a} />
               ))
             ) : (
-              <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-400">
+              <p className="border border-dashed border-line bg-paper-raised p-6 text-center text-sm text-muted">
                 Sin actividades para este día todavía.
               </p>
             )}
@@ -124,12 +129,14 @@ export default function TripPage({
 
 function NotFound({ message }: { message: string }) {
   return (
-    <div className="space-y-4 py-16 text-center">
-      <p className="text-4xl">🔒</p>
-      <p className="mx-auto max-w-md text-slate-500">{message}</p>
+    <div className="space-y-5 py-20 text-center">
+      <p className="eyebrow text-clay">Acceso restringido</p>
+      <p className="mx-auto max-w-md font-display text-2xl leading-snug text-ink">
+        {message}
+      </p>
       <Link
         href="/"
-        className="inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+        className="inline-block border border-ink px-5 py-2 text-sm font-medium text-ink transition hover:bg-ink hover:text-paper"
       >
         Volver a mis viajes
       </Link>

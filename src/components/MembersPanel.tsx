@@ -15,19 +15,20 @@ export function MembersPanel({ tripId }: { tripId: string }) {
   const canManage = isOrganizer(tripId);
 
   return (
-    <aside className="rounded-2xl border border-slate-200 bg-white p-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-slate-800">
-          Participantes ({members.length})
-        </h3>
+    <aside className="h-fit rounded-lg border border-line bg-paper-raised p-5">
+      <div className="flex items-baseline justify-between border-b border-line pb-2">
+        <h3 className="eyebrow text-muted">Participantes</h3>
+        <span className="font-display text-base text-ink">
+          {String(members.length).padStart(2, "0")}
+        </span>
       </div>
       {canManage && (
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-3 text-xs leading-relaxed text-muted">
           Como organizador, puedes dar o quitar permisos de edición.
         </p>
       )}
 
-      <ul className="mt-3 space-y-3">
+      <ul className="mt-4 space-y-4">
         {members.map((m) => {
           const isSelf = m.userId === currentUser?.id;
           const effectiveCanEdit = m.role === "organizer" || m.canEdit;
@@ -35,15 +36,14 @@ export function MembersPanel({ tripId }: { tripId: string }) {
             <li key={m.id} className="flex items-center gap-3">
               <Avatar user={m.user} size="md" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-800">
-                  {m.user.fullName} {isSelf && <span className="text-slate-400">(tú)</span>}
+                <p className="truncate text-sm font-medium text-ink">
+                  {m.user.fullName}{" "}
+                  {isSelf && <span className="text-muted">(tú)</span>}
                 </p>
-                <p className="flex items-center gap-1.5 text-xs text-slate-400">
+                <p className="flex items-center gap-1.5 text-xs text-muted">
                   <span
                     className={
-                      m.role === "organizer"
-                        ? "font-medium text-indigo-600"
-                        : ""
+                      m.role === "organizer" ? "font-medium text-moss" : ""
                     }
                   >
                     {m.role === "organizer" ? "Organizador" : "Viajero"}
@@ -54,9 +54,7 @@ export function MembersPanel({ tripId }: { tripId: string }) {
               </div>
 
               {m.role === "organizer" ? (
-                <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-600">
-                  Edita
-                </span>
+                <span className="eyebrow text-moss">Edita</span>
               ) : canManage ? (
                 <button
                   type="button"
@@ -65,21 +63,19 @@ export function MembersPanel({ tripId }: { tripId: string }) {
                   aria-checked={m.canEdit}
                   aria-label={`Permiso de edición para ${m.user.fullName}`}
                   className={`relative h-5 w-9 shrink-0 rounded-full transition ${
-                    m.canEdit ? "bg-sky-500" : "bg-slate-300"
+                    m.canEdit ? "bg-clay" : "bg-line"
                   }`}
                 >
                   <span
-                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition ${
+                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-paper-raised shadow-sm transition ${
                       m.canEdit ? "left-4" : "left-0.5"
                     }`}
                   />
                 </button>
               ) : (
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                    effectiveCanEdit
-                      ? "bg-sky-50 text-sky-600"
-                      : "bg-slate-100 text-slate-400"
+                  className={`eyebrow ${
+                    effectiveCanEdit ? "text-clay" : "text-muted"
                   }`}
                 >
                   {effectiveCanEdit ? "Edita" : "Solo lee"}

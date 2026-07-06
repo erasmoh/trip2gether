@@ -6,31 +6,39 @@ import { CommentThread } from "./CommentThread";
 
 export function ActivityCard({ activity }: { activity: ActivityWithComments }) {
   const [open, setOpen] = useState(false);
-  const timeLabel = activity.endTime
-    ? `${activity.startTime} – ${activity.endTime}`
-    : activity.startTime;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <div className="flex gap-4">
-        <div className="w-20 shrink-0 text-sm font-semibold text-sky-600">
-          {timeLabel}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h4 className="font-semibold text-slate-900">{activity.title}</h4>
-          {activity.location && (
-            <p className="text-xs text-slate-400">📍 {activity.location}</p>
+    <div className="rounded-lg border border-line bg-paper-raised p-5">
+      <div className="flex gap-5">
+        <div className="w-16 shrink-0 pt-0.5">
+          <div className="font-mono text-sm font-medium text-ink">
+            {activity.startTime}
+          </div>
+          {activity.endTime && (
+            <div className="font-mono text-[11px] text-muted">
+              {activity.endTime}
+            </div>
           )}
-          <p className="mt-1 text-sm text-slate-600">{activity.description}</p>
+        </div>
+        <div className="min-w-0 flex-1 border-l border-line pl-5">
+          <h4 className="font-display text-lg leading-tight tracking-tight text-ink">
+            {activity.title}
+          </h4>
+          {activity.location && (
+            <p className="eyebrow mt-1 text-muted">{activity.location}</p>
+          )}
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+            {activity.description}
+          </p>
 
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="mt-2 text-xs font-medium text-sky-600 hover:underline"
+            className="eyebrow mt-3 text-clay transition hover:opacity-70"
           >
             {open
               ? "Ocultar comentarios"
-              : `Comentarios (${activity.comments.length})`}
+              : `Comentarios · ${activity.comments.length}`}
           </button>
 
           {open && (
