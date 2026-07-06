@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# trip2gether ✈️
 
-## Getting Started
+Planea viajes en grupo: invita a las personas que viajan contigo y coordinen la
+agenda día a día. Cada día tiene actividades con **hora, título, ubicación,
+descripción y comentarios** de cada participante. **Solo las personas invitadas
+a un viaje pueden verlo.**
 
-First, run the development server:
+> Estado actual: front-end en **Next.js** con **datos mockeados**. La base de
+> datos en **Supabase todavía no está conectada**; el esquema previsto (con
+> políticas RLS de acceso) está en [`supabase/schema.sql`](supabase/schema.sql).
+
+## Funcionalidades
+
+- **Lista de viajes** filtrada por membresía: solo ves los viajes a los que te
+  invitaron.
+- **Itinerario por día** con pestañas por cada día del viaje.
+- **Actividades** con hora de inicio/fin, ubicación y descripción.
+- **Comentarios por actividad** de cada participante.
+- **Permisos de edición**: el organizador puede dar o quitar el privilegio de
+  edición a cada invitado. Solo quienes tienen edición pueden crear/editar
+  actividades; el resto tiene acceso de solo lectura.
+- **Cambio de usuario** (arriba a la derecha) para simular la sesión de cada
+  invitado y ver cómo cambian el acceso y los permisos.
+
+## Arquitectura de datos
+
+Los tipos viven en [`src/lib/types.ts`](src/lib/types.ts) y los datos de ejemplo
+en [`src/lib/mock-data.ts`](src/lib/mock-data.ts). El estado y la lógica de
+acceso están en el store cliente [`src/lib/store.tsx`](src/lib/store.tsx), cuyas
+funciones (`visibleTrips`, `canAccessTrip`, `canEditTrip`, `setMemberCanEdit`,
+`addActivity`, `addComment`, …) mapean 1:1 a futuras consultas de Supabase.
+
+Modelo: `users` → `trips` → `trip_members` (rol + `can_edit`) → `activities` →
+`comments`.
+
+## Ideas futuras
+
+- Presupuesto compartido y división de gastos.
+- Votación de propuestas de actividades.
+- Mapa con ubicaciones y clima por día.
+- Checklist de equipaje/documentos.
+- Adjuntar reservas (vuelos, hoteles) y exportar a PDF / calendario `.ics`.
+- Notificaciones de cambios en el itinerario.
+
+## Desarrollo
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev    # http://localhost:3000
+npm run lint
+npm run build
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
