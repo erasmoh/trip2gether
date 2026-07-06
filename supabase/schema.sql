@@ -13,13 +13,33 @@
 create extension if not exists "pgcrypto";
 
 -- Profiles mirror auth.users (Supabase Auth) with app-specific fields.
+-- Auth is passwordless (email OTP / magic link): supabase.auth.signInWithOtp
+-- then supabase.auth.verifyOtp. `registered` flips to true once an invited user
+-- completes their profile (full_name) on first login.
 create table if not exists public.profiles (
   id            uuid primary key references auth.users (id) on delete cascade,
-  full_name     text not null,
+  full_name     text not null default '',
   email         text not null unique,
   avatar_color  text not null default '#64748b',
+  registered    boolean not null default false,
   created_at    timestamptz not null default now()
 );
+
+-- Auto-create a profile row when a Supabase auth user is created.
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer as $$
+begin
+  insert into public.profiles (id, email)
+  values (new.id, new.email)
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
 
 create table if not exists public.trips (
   id           uuid primary key default gen_random_uuid(),

@@ -4,7 +4,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { seedData } from "./mock-data";
@@ -37,10 +39,39 @@ interface NewActivityInput {
   description: string;
 }
 
+export interface OtpRequestResult {
+  ok: boolean;
+  error?: string;
+  /**
+   * The generated code. In production Supabase emails this; here there is no
+   * email backend, so we surface it to show in a dev banner on the login page.
+   */
+  devCode?: string;
+}
+
+export type OtpVerifyStatus = "ok" | "needs_registration" | "error";
+
+export interface OtpVerifyResult {
+  status: OtpVerifyStatus;
+  error?: string;
+}
+
+const SESSION_KEY = "trip2gether.session";
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 interface StoreValue {
-  currentUser: User;
+  /** The signed-in user, or null when logged out. */
+  currentUser: User | null;
   users: User[];
-  setCurrentUser: (userId: string) => void;
+  /** False until the persisted session has been read on the client. */
+  authReady: boolean;
+  /** Passwordless OTP: "send" a 6-digit code to an invited email. */
+  requestOtp: (email: string) => OtpRequestResult;
+  /** Verify the code. Returns "needs_registration" for first-time invitees. */
+  verifyOtp: (email: string, token: string) => OtpVerifyResult;
+  /** Complete first-time registration (set name) and sign in. */
+  completeRegistration: (email: string, fullName: string) => OtpVerifyResult;
+  signOut: () => void;
   /** Trips the current user is a member of (access control simulation). */
   visibleTrips: Trip[];
   getTrip: (tripId: string) => Trip | undefined;
@@ -71,7 +102,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     activities: seedData.activities,
     comments: seedData.comments,
   }));
-  const [currentUserId, setCurrentUserId] = useState<string>(seedData.users[0].id);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  // Codes "sent" per email. In production Supabase owns this server-side.
+  const otpCodes = useRef<Map<string, string>>(new Map());
+
+  // Hydrate the session from localStorage on the client. Reading storage during
+  // render would cause an SSR/client mismatch, so it must happen in an effect.
+  useEffect(() => {
+    let saved: string | null = null;
+    try {
+      saved = window.localStorage.getItem(SESSION_KEY);
+    } catch {
+      // ignore storage errors (e.g. disabled cookies)
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurrentUserId(saved);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAuthReady(true);
+  }, []);
+
+  const persistSession = useCallback((userId: string | null) => {
+    setCurrentUserId(userId);
+    try {
+      if (userId) window.localStorage.setItem(SESSION_KEY, userId);
+      else window.localStorage.removeItem(SESSION_KEY);
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
 
   const usersById = useMemo(() => {
     const map = new Map<string, User>();
@@ -79,7 +138,69 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return map;
   }, [data.users]);
 
-  const currentUser = usersById.get(currentUserId) ?? data.users[0];
+  const currentUser = currentUserId ? usersById.get(currentUserId) ?? null : null;
+
+  const findByEmail = useCallback(
+    (email: string) =>
+      data.users.find((u) => u.email.toLowerCase() === normalizeEmail(email)),
+    [data.users],
+  );
+
+  // Mirrors supabase.auth.signInWithOtp({ email }). Only invited emails (users
+  // that already exist) are accepted, matching shouldCreateUser: false.
+  const requestOtp = useCallback(
+    (email: string): OtpRequestResult => {
+      const user = findByEmail(email);
+      if (!user) {
+        return {
+          ok: false,
+          error: "Este correo no tiene invitaciones a ningún viaje.",
+        };
+      }
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      otpCodes.current.set(normalizeEmail(email), code);
+      return { ok: true, devCode: code };
+    },
+    [findByEmail],
+  );
+
+  // Mirrors supabase.auth.verifyOtp({ email, token, type: 'email' }).
+  const verifyOtp = useCallback(
+    (email: string, token: string): OtpVerifyResult => {
+      const user = findByEmail(email);
+      const expected = otpCodes.current.get(normalizeEmail(email));
+      if (!user || !expected || token.trim() !== expected) {
+        return { status: "error", error: "Código incorrecto o expirado." };
+      }
+      otpCodes.current.delete(normalizeEmail(email));
+      if (!user.registered) {
+        return { status: "needs_registration" };
+      }
+      persistSession(user.id);
+      return { status: "ok" };
+    },
+    [findByEmail, persistSession],
+  );
+
+  const completeRegistration = useCallback(
+    (email: string, fullName: string): OtpVerifyResult => {
+      const user = findByEmail(email);
+      if (!user) return { status: "error", error: "Usuario no encontrado." };
+      const name = fullName.trim();
+      if (!name) return { status: "error", error: "El nombre es obligatorio." };
+      setData((prev) => ({
+        ...prev,
+        users: prev.users.map((u) =>
+          u.id === user.id ? { ...u, fullName: name, registered: true } : u,
+        ),
+      }));
+      persistSession(user.id);
+      return { status: "ok" };
+    },
+    [findByEmail, persistSession],
+  );
+
+  const signOut = useCallback(() => persistSession(null), [persistSession]);
 
   const membershipTripIds = useMemo(() => {
     return new Set(
@@ -146,6 +267,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addActivity = useCallback(
     (tripId: string, input: NewActivityInput) => {
+      if (!currentUserId) return;
       const activity: Activity = {
         id: nextId("a"),
         tripId,
@@ -159,6 +281,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addComment = useCallback(
     (activityId: string, body: string) => {
+      if (!currentUserId) return;
       const comment: Comment = {
         id: nextId("c"),
         activityId,
@@ -204,7 +327,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const value: StoreValue = {
     currentUser,
     users: data.users,
-    setCurrentUser: setCurrentUserId,
+    authReady,
+    requestOtp,
+    verifyOtp,
+    completeRegistration,
+    signOut,
     visibleTrips,
     getTrip,
     canAccessTrip,

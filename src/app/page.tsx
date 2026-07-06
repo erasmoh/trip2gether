@@ -2,11 +2,18 @@
 
 import Link from "next/link";
 import { useStore } from "@/lib/store";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 import { Avatar } from "@/components/Avatar";
 import { formatDateRange, tripLengthDays } from "@/lib/format";
 
 export default function HomePage() {
-  const { currentUser, visibleTrips, getMembers } = useStore();
+  const { user } = useRequireAuth();
+  const { visibleTrips, getMembers } = useStore();
+
+  if (!user) {
+    return <p className="py-16 text-center text-slate-400">Cargando…</p>;
+  }
+  const currentUser = user;
 
   return (
     <div className="space-y-6">

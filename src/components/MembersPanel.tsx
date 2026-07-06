@@ -29,7 +29,7 @@ export function MembersPanel({ tripId }: { tripId: string }) {
 
       <ul className="mt-3 space-y-3">
         {members.map((m) => {
-          const isSelf = m.userId === currentUser.id;
+          const isSelf = m.userId === currentUser?.id;
           const effectiveCanEdit = m.role === "organizer" || m.canEdit;
           return (
             <li key={m.id} className="flex items-center gap-3">

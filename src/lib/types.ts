@@ -10,6 +10,9 @@ export interface User {
   fullName: string;
   email: string;
   avatarColor: string; // used for avatar fallback in the UI
+  // Invited people exist as users but haven't completed passwordless
+  // registration yet. First successful OTP verify flips this to true.
+  registered: boolean;
 }
 
 export interface Trip {

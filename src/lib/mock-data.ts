@@ -11,30 +11,36 @@ export const users: User[] = [
     fullName: "Ana Torres",
     email: "ana@example.com",
     avatarColor: "#f97316",
+    registered: true,
   },
   {
     id: "u_bruno",
     fullName: "Bruno Díaz",
     email: "bruno@example.com",
     avatarColor: "#3b82f6",
+    registered: true,
   },
   {
     id: "u_carla",
     fullName: "Carla Méndez",
     email: "carla@example.com",
     avatarColor: "#10b981",
+    // Invitada pero aún no completa su registro (para probar el alta por OTP).
+    registered: false,
   },
   {
     id: "u_diego",
     fullName: "Diego Rojas",
     email: "diego@example.com",
     avatarColor: "#a855f7",
+    registered: true,
   },
   {
     id: "u_elena",
     fullName: "Elena Vidal",
     email: "elena@example.com",
     avatarColor: "#ec4899",
+    registered: false,
   },
 ];
 

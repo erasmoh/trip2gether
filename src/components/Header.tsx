@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useStore } from "@/lib/store";
 import { Avatar } from "./Avatar";
 
 export function Header() {
-  const { currentUser, users, setCurrentUser } = useStore();
+  const { currentUser, signOut } = useStore();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
   return (
@@ -21,58 +23,55 @@ export function Header() {
           </span>
         </Link>
 
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-3 transition hover:bg-slate-50"
-          >
-            <Avatar user={currentUser} size="sm" />
-            <span className="hidden text-sm font-medium text-slate-700 sm:inline">
-              {currentUser.fullName}
-            </span>
-            <span className="text-xs text-slate-400">▾</span>
-          </button>
+        {currentUser && (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-3 transition hover:bg-slate-50"
+            >
+              <Avatar user={currentUser} size="sm" />
+              <span className="hidden text-sm font-medium text-slate-700 sm:inline">
+                {currentUser.fullName}
+              </span>
+              <span className="text-xs text-slate-400">▾</span>
+            </button>
 
-          {open && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setOpen(false)}
-                aria-hidden
-              />
-              <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
-                <p className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Ver la app como
-                </p>
-                {users.map((u) => (
+            {open && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setOpen(false)}
+                  aria-hidden
+                />
+                <div className="absolute right-0 z-20 mt-2 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                  <div className="flex items-center gap-3 px-2 py-2">
+                    <Avatar user={currentUser} size="md" />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-slate-800">
+                        {currentUser.fullName}
+                      </span>
+                      <span className="block truncate text-xs text-slate-400">
+                        {currentUser.email}
+                      </span>
+                    </span>
+                  </div>
                   <button
-                    key={u.id}
                     type="button"
                     onClick={() => {
-                      setCurrentUser(u.id);
                       setOpen(false);
+                      signOut();
+                      router.replace("/login");
                     }}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-slate-50 ${
-                      u.id === currentUser.id ? "bg-slate-50" : ""
-                    }`}
+                    className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 transition hover:bg-red-50"
                   >
-                    <Avatar user={u} size="sm" />
-                    <span className="flex-1">
-                      <span className="block font-medium text-slate-800">
-                        {u.fullName}
-                      </span>
-                      <span className="block text-xs text-slate-400">{u.email}</span>
-                    </span>
-                    {u.id === currentUser.id && (
-                      <span className="text-sky-500">✓</span>
-                    )}
+                    Cerrar sesión
                   </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

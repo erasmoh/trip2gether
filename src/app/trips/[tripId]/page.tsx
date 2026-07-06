@@ -7,6 +7,7 @@ import { ActivityCard } from "@/components/ActivityCard";
 import { AddActivityForm } from "@/components/AddActivityForm";
 import { MembersPanel } from "@/components/MembersPanel";
 import { formatDateRange, formatDayLabel } from "@/lib/format";
+import { useRequireAuth } from "@/lib/useRequireAuth";
 
 export default function TripPage({
   params,
@@ -14,6 +15,7 @@ export default function TripPage({
   params: Promise<{ tripId: string }>;
 }) {
   const { tripId } = use(params);
+  const { user } = useRequireAuth();
   const { getTrip, canAccessTrip, canEditTrip, getDays } = useStore();
   const trip = getTrip(tripId);
   const hasAccess = canAccessTrip(tripId);
@@ -21,6 +23,10 @@ export default function TripPage({
   const [activeDate, setActiveDate] = useState<string | null>(
     days[0]?.date ?? trip?.startDate ?? null,
   );
+
+  if (!user) {
+    return <p className="py-16 text-center text-slate-400">Cargando…</p>;
+  }
 
   if (!trip) {
     return <NotFound message="Este viaje no existe." />;
