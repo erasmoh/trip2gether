@@ -11,9 +11,23 @@
   --color-clay-soft: #f0ddd4;
   --color-moss: #4b6746;
 
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-nunito);
   --font-mono: var(--font-geist-mono);
+}
+
+/* Headings: same friendly sans as the body, just heavier. */
+@utility font-display {
+  font-family: var(--font-nunito), system-ui, sans-serif;
+  font-weight: 800;
+}
+
+/* Tailwind v4 dropped the pointer cursor on buttons; restore it so every
+   clickable control signals interactivity (disabled ones keep the default). */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 :root {
@@ -24,13 +38,13 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-nunito), system-ui, sans-serif;
 }
 
 /* Small uppercase tracked label used for eyebrows/meta. */
 .eyebrow {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.1em;
   font-size: 0.7rem;
 }

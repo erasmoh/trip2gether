@@ -1,6 +1,45 @@
 // Date/label helpers. Dates are treated as calendar dates (no timezone shifts)
 // by parsing the ISO YYYY-MM-DD parts directly.
 
+import type { Trip, TripDay } from "./types";
+
+/** Canonical path for a trip: custom short URL if claimed, UUID otherwise. */
+export function tripPath(trip: Trip): string {
+  return `/trips/${trip.slug ?? trip.id}`;
+}
+
+/**
+ * Plain-text itinerary summary for sharing (WhatsApp-friendly: *asterisks*
+ * render as bold there). Ends with the trip URL for the full details.
+ */
+export function buildTripSummary(
+  trip: Trip,
+  days: TripDay[],
+  url: string,
+): string {
+  const lines = [
+    `*${trip.name}* — ${trip.destination}`,
+    `${formatDateRange(trip.startDate, trip.endDate)} · ${tripLengthDays(trip.startDate, trip.endDate)} días`,
+  ];
+  if (days.length === 0) {
+    lines.push("", "Aún no hay actividades en la agenda.");
+  }
+  for (const day of days) {
+    // Day number relative to the trip start (1-based).
+    const dayNum = tripLengthDays(trip.startDate, day.date);
+    lines.push("", `*Día ${dayNum} · ${formatDayLabel(day.date)}*`);
+    for (const a of day.activities) {
+      const time = a.startTime
+        ? `${a.startTime}${a.endTime ? `–${a.endTime}` : ""} `
+        : "";
+      const loc = a.location ? ` (${a.location})` : "";
+      lines.push(`• ${time}${a.title}${loc}`);
+    }
+  }
+  lines.push("", "Detalles y comentarios en:", url);
+  return lines.join("\n");
+}
+
 const MONTHS_ES = [
   "ene", "feb", "mar", "abr", "may", "jun",
   "jul", "ago", "sep", "oct", "nov", "dic",

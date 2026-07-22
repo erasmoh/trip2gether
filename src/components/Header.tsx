@@ -7,14 +7,17 @@ import { useStore } from "@/lib/store";
 import { Avatar } from "./Avatar";
 
 export function Header() {
-  const { currentUser, signOut } = useStore();
+  const { currentUser, authReady, signOut } = useStore();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-paper/85 backdrop-blur">
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-3.5 sm:px-6">
-        <Link href="/" className="group flex items-center gap-2.5 text-ink">
+        <Link
+          href={currentUser ? "/trips" : "/"}
+          className="group flex items-center gap-2.5 text-ink"
+        >
           <span className="grid h-8 w-8 place-items-center rounded-full border border-ink font-display text-base italic leading-none text-ink">
             t
           </span>
@@ -22,6 +25,15 @@ export function Header() {
             trip<span className="italic text-clay">2</span>gether
           </span>
         </Link>
+
+        {authReady && !currentUser && (
+          <Link
+            href="/login"
+            className="rounded-full bg-ink px-4 py-1.5 text-sm font-bold text-paper transition hover:bg-ink/85"
+          >
+            Iniciar sesión
+          </Link>
+        )}
 
         {currentUser && (
           <div className="relative">
@@ -61,7 +73,7 @@ export function Header() {
                     onClick={() => {
                       setOpen(false);
                       signOut();
-                      router.replace("/login");
+                      router.replace("/");
                     }}
                     className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-clay transition hover:bg-clay-soft"
                   >
