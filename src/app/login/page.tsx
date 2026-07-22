@@ -15,31 +15,34 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [fullName, setFullName] = useState("");
-  const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Already signed in → go home.
+  // Already signed in → go to the trips list.
   useEffect(() => {
-    if (authReady && currentUser) router.replace("/");
+    if (authReady && currentUser) router.replace("/trips");
   }, [authReady, currentUser, router]);
 
-  function submitEmail(e: React.FormEvent) {
+  async function submitEmail(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const res = requestOtp(email);
+    setSubmitting(true);
+    const res = await requestOtp(email);
+    setSubmitting(false);
     if (!res.ok) {
       setError(res.error ?? "No pudimos enviar el código.");
       return;
     }
-    setDevCode(res.devCode ?? null);
     setCode("");
     setStep("code");
   }
 
-  function submitCode(e: React.FormEvent) {
+  async function submitCode(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const res = verifyOtp(email, code);
+    setSubmitting(true);
+    const res = await verifyOtp(email, code);
+    setSubmitting(false);
     if (res.status === "error") {
       setError(res.error ?? "Código incorrecto.");
       return;
@@ -48,18 +51,20 @@ export default function LoginPage() {
       setStep("register");
       return;
     }
-    router.replace("/");
+    router.replace("/trips");
   }
 
-  function submitRegister(e: React.FormEvent) {
+  async function submitRegister(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    const res = completeRegistration(email, fullName);
+    setSubmitting(true);
+    const res = await completeRegistration(fullName);
+    setSubmitting(false);
     if (res.status === "error") {
       setError(res.error ?? "No pudimos completar el registro.");
       return;
     }
-    router.replace("/");
+    router.replace("/trips");
   }
 
   const field =
@@ -69,7 +74,7 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto max-w-sm py-14">
-      <p className="eyebrow text-clay">Acceso solo por invitación</p>
+      <p className="eyebrow text-clay">Crea tu cuenta gratis</p>
       <h1 className="mt-3 font-display text-4xl leading-[1.05] tracking-tight text-ink">
         Entra a trip<span className="italic text-clay">2</span>gether
       </h1>
@@ -97,24 +102,18 @@ export default function LoginPage() {
                 className={`${field} mt-1`}
               />
             </label>
-            <button type="submit" className={primaryBtn}>
-              Enviar código
+            <button type="submit" disabled={submitting} className={primaryBtn}>
+              {submitting ? "Enviando…" : "Enviar código"}
             </button>
             <p className="text-center text-xs text-muted">
-              Prueba con ana@example.com (registrada) o carla@example.com (alta
-              nueva).
+              Usa cualquier correo: te enviamos un código de acceso, sin
+              necesidad de invitación previa.
             </p>
           </form>
         )}
 
         {step === "code" && (
           <form onSubmit={submitCode} className="space-y-3">
-            {devCode && (
-              <p className="rounded-lg border border-line bg-paper px-3 py-2 text-xs text-ink-soft">
-                Modo demo (sin email real): tu código es{" "}
-                <span className="font-mono font-bold text-clay">{devCode}</span>
-              </p>
-            )}
             <p className="text-sm text-ink-soft">
               Enviamos un código de 6 dígitos a <strong className="text-ink">{email}</strong>.
             </p>
@@ -130,8 +129,8 @@ export default function LoginPage() {
                 className={`${field} mt-1 text-center font-mono text-lg tracking-widest`}
               />
             </label>
-            <button type="submit" className={primaryBtn}>
-              Verificar
+            <button type="submit" disabled={submitting} className={primaryBtn}>
+              {submitting ? "Verificando…" : "Verificar"}
             </button>
             <button
               type="button"
@@ -161,8 +160,8 @@ export default function LoginPage() {
                 className={`${field} mt-1`}
               />
             </label>
-            <button type="submit" className={primaryBtn}>
-              Crear cuenta y entrar
+            <button type="submit" disabled={submitting} className={primaryBtn}>
+              {submitting ? "Creando cuenta…" : "Crear cuenta y entrar"}
             </button>
           </form>
         )}
