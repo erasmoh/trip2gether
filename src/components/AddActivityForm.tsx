@@ -1,139 +1,119 @@
 "use client";
 
 import { useState } from "react";
-import { useStore } from "@/lib/store";
+import { insertActivity } from "@/lib/supabase/queries";
+import { formatDayLabel } from "@/lib/format";
 
+/**
+ * Global floating CTA to add an activity from anywhere in the trip page.
+ * The form is intentionally minimal (title only); the target day is taken
+ * from the currently selected day tab.
+ */
 export function AddActivityForm({
   tripId,
   dayDate,
+  createdBy,
+  onAdded,
 }: {
   tripId: string;
   dayDate: string;
+  createdBy: string;
+  onAdded: () => void;
 }) {
-  const { addActivity } = useStore();
   const [open, setOpen] = useState(false);
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("");
   const [title, setTitle] = useState("");
-  const [location, setLocation] = useState("");
-  const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function reset() {
-    setStartTime("09:00");
-    setEndTime("");
+  function close() {
     setTitle("");
-    setLocation("");
-    setDescription("");
-  }
-
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!title.trim()) return;
-    addActivity(tripId, {
-      dayDate,
-      startTime,
-      endTime: endTime || undefined,
-      title: title.trim(),
-      location: location.trim() || undefined,
-      description: description.trim(),
-    });
-    reset();
+    setError(null);
     setOpen(false);
   }
 
-  if (!open) {
-    return (
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await insertActivity(tripId, createdBy, { dayDate, title: title.trim() });
+      onAdded();
+      close();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo agregar la actividad.");
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-lg border border-dashed border-line py-3 text-sm font-medium text-muted transition hover:border-clay hover:text-clay"
+        className="fixed bottom-6 right-6 z-40 rounded-full bg-clay px-5 py-3 text-sm font-medium text-white shadow-lg transition hover:bg-clay/90"
       >
         + Agregar actividad
       </button>
-    );
-  }
 
-  const field =
-    "rounded-lg border border-line bg-paper-raised px-3 py-1.5 text-sm text-ink outline-none focus:border-clay focus:ring-1 focus:ring-clay";
-  const label = "flex flex-col gap-1 eyebrow text-muted";
-
-  return (
-    <form
-      onSubmit={submit}
-      className="space-y-3 rounded-lg border border-clay/30 bg-clay-soft/40 p-4"
-    >
-      <div className="flex flex-wrap gap-3">
-        <label className={label}>
-          Inicio
-          <input
-            type="time"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            className={field}
-            required
-          />
-        </label>
-        <label className={label}>
-          Fin (opcional)
-          <input
-            type="time"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            className={field}
-          />
-        </label>
-        <label className={`${label} flex-1`}>
-          Título
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ej. Visita al museo"
-            className={field}
-            required
-          />
-        </label>
-      </div>
-
-      <label className={label}>
-        Ubicación (opcional)
-        <input
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
-          placeholder="Ej. Centro histórico"
-          className={field}
-        />
-      </label>
-
-      <label className={label}>
-        Descripción
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          rows={2}
-          placeholder="Detalles, notas, qué llevar…"
-          className={field}
-        />
-      </label>
-
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => {
-            reset();
-            setOpen(false);
-          }}
-          className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink"
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
+          onClick={close}
         >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={!title.trim()}
-          className="rounded-lg bg-clay px-4 py-1.5 text-sm font-medium text-white transition hover:bg-clay/90 disabled:opacity-40"
-        >
-          Guardar
-        </button>
-      </div>
-    </form>
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-label="Nueva actividad"
+            onSubmit={submit}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.key === "Escape" && close()}
+            className="w-full max-w-sm space-y-4 rounded-lg border border-line bg-paper-raised p-5 shadow-xl"
+          >
+            <div>
+              <p className="eyebrow text-clay">Nueva actividad</p>
+              <p className="mt-1 text-xs text-muted">
+                Se agregará al día {formatDayLabel(dayDate)}.
+              </p>
+            </div>
+
+            <label className="flex flex-col gap-1 eyebrow text-muted">
+              Título
+              <input
+                autoFocus
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej. Visita al museo"
+                className="rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-clay focus:ring-1 focus:ring-clay"
+                required
+              />
+            </label>
+
+            {error && (
+              <p className="border-l-2 border-clay bg-clay-soft/60 px-3 py-2 text-xs text-ink-soft">
+                {error}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={close}
+                className="rounded-lg px-3 py-1.5 text-sm font-medium text-muted transition hover:text-ink"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={!title.trim() || submitting}
+                className="rounded-lg bg-clay px-4 py-1.5 text-sm font-medium text-white transition hover:bg-clay/90 disabled:opacity-40"
+              >
+                {submitting ? "Guardando…" : "Guardar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </>
   );
 }

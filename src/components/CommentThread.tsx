@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useStore } from "@/lib/store";
+import { insertComment } from "@/lib/supabase/queries";
 import { formatRelativeTime } from "@/lib/format";
 import type { CommentWithUser } from "@/lib/types";
 import { Avatar } from "./Avatar";
@@ -9,19 +9,33 @@ import { Avatar } from "./Avatar";
 export function CommentThread({
   activityId,
   comments,
+  currentUserId,
+  onAdded,
 }: {
   activityId: string;
   comments: CommentWithUser[];
+  currentUserId: string;
+  onAdded: () => void;
 }) {
-  const { addComment } = useStore();
   const [body, setBody] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = body.trim();
     if (!trimmed) return;
-    addComment(activityId, trimmed);
-    setBody("");
+    setSubmitting(true);
+    setError(null);
+    try {
+      await insertComment(activityId, currentUserId, trimmed);
+      setBody("");
+      onAdded();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo publicar el comentario.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -52,6 +66,12 @@ export function CommentThread({
         )}
       </ul>
 
+      {error && (
+        <p className="mt-2 border-l-2 border-clay bg-clay-soft/60 px-3 py-2 text-xs text-ink-soft">
+          {error}
+        </p>
+      )}
+
       <form onSubmit={submit} className="mt-2 flex gap-2">
         <input
           value={body}
@@ -61,7 +81,7 @@ export function CommentThread({
         />
         <button
           type="submit"
-          disabled={!body.trim()}
+          disabled={!body.trim() || submitting}
           className="rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-paper transition hover:bg-ink/85 disabled:opacity-40"
         >
           Enviar

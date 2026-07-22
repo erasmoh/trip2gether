@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { use, useState } from "react";
-import { useStore } from "@/lib/store";
+import { useTrip, useDays, useMembership } from "@/lib/hooks";
+import { canEditFromMembership } from "@/lib/supabase/queries";
 import { ActivityCard } from "@/components/ActivityCard";
 import { AddActivityForm } from "@/components/AddActivityForm";
 import { MembersPanel } from "@/components/MembersPanel";
+import { TripLinkPanel } from "@/components/TripLinkPanel";
 import { formatDateRange, formatDayLabel } from "@/lib/format";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 
@@ -14,31 +16,28 @@ export default function TripPage({
 }: {
   params: Promise<{ tripId: string }>;
 }) {
-  const { tripId } = use(params);
+  // The segment accepts the trip UUID or its custom short slug.
+  const { tripId: tripRef } = use(params);
   const { user } = useRequireAuth();
-  const { getTrip, canAccessTrip, canEditTrip, getDays } = useStore();
-  const trip = getTrip(tripId);
-  const hasAccess = canAccessTrip(tripId);
-  const days = getDays(tripId);
+  const { trip, loading: tripLoading } = useTrip(tripRef);
+  const { membership, loading: membershipLoading } = useMembership(
+    trip?.id ?? null,
+    user?.id ?? null,
+  );
+  const { days, refetch: refetchDays } = useDays(trip?.id ?? null);
   const [activeDate, setActiveDate] = useState<string | null>(
     days[0]?.date ?? trip?.startDate ?? null,
   );
 
-  if (!user) {
+  if (!user || tripLoading || membershipLoading) {
     return <p className="py-16 text-center text-muted">Cargando…</p>;
   }
 
   if (!trip) {
-    return <NotFound message="Este viaje no existe." />;
+    return <NotFound message="Este viaje no existe o no tienes acceso a él." />;
   }
 
-  if (!hasAccess) {
-    return (
-      <NotFound message="No tienes acceso a este viaje. Solo las personas invitadas pueden verlo." />
-    );
-  }
-
-  const canEdit = canEditTrip(tripId);
+  const canEdit = canEditFromMembership(membership);
   const selectedDate = activeDate ?? days[0]?.date ?? trip.startDate;
   const activeDay = days.find((d) => d.date === selectedDate);
 
@@ -48,7 +47,7 @@ export default function TripPage({
   return (
     <div className="space-y-8">
       <Link
-        href="/"
+        href="/trips"
         className="eyebrow inline-flex items-center gap-1.5 text-muted transition hover:text-ink"
       >
         ← Todos mis viajes
@@ -107,22 +106,45 @@ export default function TripPage({
           <div className="space-y-3">
             {activeDay && activeDay.activities.length > 0 ? (
               activeDay.activities.map((a) => (
-                <ActivityCard key={a.id} activity={a} />
+                <ActivityCard
+                  key={a.id}
+                  activity={a}
+                  currentUserId={user.id}
+                  onCommentAdded={refetchDays}
+                />
               ))
             ) : (
               <p className="border border-dashed border-line bg-paper-raised p-6 text-center text-sm text-muted">
                 Sin actividades para este día todavía.
               </p>
             )}
-
-            {canEdit && (
-              <AddActivityForm tripId={tripId} dayDate={selectedDate} />
-            )}
           </div>
         </section>
 
-        <MembersPanel tripId={tripId} />
+        <div className="space-y-5">
+          <MembersPanel
+            tripId={trip.id}
+            currentUserId={user.id}
+            canManage={membership?.role === "organizer"}
+          />
+          <TripLinkPanel
+            trip={trip}
+            currentUser={user}
+            membership={membership}
+            days={days}
+          />
+        </div>
       </div>
+
+      {/* Global floating CTA: adds to the currently selected day tab. */}
+      {canEdit && (
+        <AddActivityForm
+          tripId={trip.id}
+          dayDate={selectedDate}
+          createdBy={user.id}
+          onAdded={refetchDays}
+        />
+      )}
     </div>
   );
 }
@@ -135,7 +157,7 @@ function NotFound({ message }: { message: string }) {
         {message}
       </p>
       <Link
-        href="/"
+        href="/trips"
         className="inline-block border border-ink px-5 py-2 text-sm font-medium text-ink transition hover:bg-ink hover:text-paper"
       >
         Volver a mis viajes
