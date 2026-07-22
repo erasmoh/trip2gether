@@ -164,8 +164,14 @@ create policy "profiles_update_self" on public.profiles
   for update using (id = auth.uid());
 
 -- Trips: only members can see a trip; only the organizer can update it.
+-- created_by = auth.uid() is included (not just is_trip_member) because
+-- Postgres re-checks the SELECT policy for the RETURNING row on insert —
+-- at that point the on_trip_created trigger's trip_members row isn't
+-- visible yet, so relying on is_trip_member() alone makes `insert(...)
+-- .select()` fail with "new row violates row-level security policy" for
+-- the very user who just created the trip.
 create policy "trips_select_members" on public.trips
-  for select using (public.is_trip_member(id));
+  for select using (created_by = auth.uid() or public.is_trip_member(id));
 create policy "trips_insert_own" on public.trips
   for insert with check (created_by = auth.uid());
 create policy "trips_update_editors" on public.trips

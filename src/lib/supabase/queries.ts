@@ -123,6 +123,34 @@ export async function fetchVisibleTrips(): Promise<Trip[]> {
   return data.map(mapTrip);
 }
 
+export interface NewTripInput {
+  name: string;
+  destination: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+}
+
+/** Creates a trip owned by the current user. A DB trigger (on_trip_created)
+ *  adds the creator as its organizer, so it shows up in fetchVisibleTrips
+ *  right away. */
+export async function insertTrip(createdBy: string, input: NewTripInput): Promise<Trip> {
+  const { data, error } = await supabase
+    .from("trips")
+    .insert({
+      created_by: createdBy,
+      name: input.name,
+      destination: input.destination,
+      description: input.description,
+      start_date: input.startDate,
+      end_date: input.endDate,
+    })
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapTrip(data);
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Resolves a trip by UUID or by its custom slug. RLS hides trips the user can't access
@@ -180,6 +208,49 @@ export async function setMemberCanEdit(memberId: string, canEdit: boolean): Prom
     .update({ can_edit: canEdit })
     .eq("id", memberId);
   if (error) throw new Error(error.message);
+}
+
+export interface AddMemberResult {
+  ok: boolean;
+  error?: string;
+}
+
+/** Adds an existing account to a trip by email. Registration is open, but there's
+ *  no invite-by-email account creation flow, so the invitee has to have already
+ *  signed up — if no profile matches, surface a friendly error instead of a
+ *  silent no-op. RLS (members_manage_by_organizer) still enforces that only an
+ *  organizer of this trip can actually perform the insert. */
+export async function addMemberByEmail(tripId: string, rawEmail: string): Promise<AddMemberResult> {
+  const email = rawEmail.trim().toLowerCase();
+  if (!email) return { ok: false, error: "Escribe un correo." };
+
+  const { data: profile, error: profileErr } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  if (profileErr) return { ok: false, error: profileErr.message };
+  if (!profile) {
+    return {
+      ok: false,
+      error: "Esta persona no tiene una cuenta todavía. Pídele que se registre primero en trip2gether.",
+    };
+  }
+
+  const { error } = await supabase.from("trip_members").insert({
+    trip_id: tripId,
+    user_id: profile.id,
+    role: "traveler",
+    status: "accepted",
+    can_edit: false,
+  });
+  if (error) {
+    if (error.code === "23505") {
+      return { ok: false, error: "Esa persona ya es parte de este viaje." };
+    }
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }
 
 /** Activities for a trip, grouped by day and with their comments attached (nested select). */

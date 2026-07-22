@@ -1,20 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useVisibleTrips, useMembers } from "@/lib/hooks";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { Avatar } from "@/components/Avatar";
+import { CreateTripForm } from "@/components/CreateTripForm";
 import { formatDateRange, tripLengthDays, tripPath } from "@/lib/format";
 import type { Trip } from "@/lib/types";
 
 export default function TripsPage() {
+  const router = useRouter();
   const { user } = useRequireAuth();
-  const { trips, loading, error } = useVisibleTrips();
+  const { trips, loading, error, refetch } = useVisibleTrips();
 
   if (!user) {
     return <p className="py-16 text-center text-muted">Cargando…</p>;
   }
   const currentUser = user;
+
+  function handleCreated(trip: Trip) {
+    refetch();
+    router.push(tripPath(trip));
+  }
 
   return (
     <div className="space-y-10">
@@ -25,16 +33,19 @@ export default function TripsPage() {
           <span className="italic text-clay">itinerario</span>.
         </h1>
         <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-soft">
-          Solo ves los viajes a los que te han invitado. Abre uno para coordinar
-          la agenda día a día con tu grupo.
+          Solo ves los viajes a los que te han invitado. Crea uno o abre uno
+          existente para coordinar la agenda día a día con tu grupo.
         </p>
       </section>
 
-      <div className="flex items-baseline justify-between border-b border-line pb-2">
-        <h2 className="eyebrow text-muted">Mis viajes</h2>
-        <span className="font-display text-lg text-ink">
-          {String(trips.length).padStart(2, "0")}
-        </span>
+      <div className="flex items-baseline justify-between gap-4 border-b border-line pb-2">
+        <div className="flex items-baseline gap-3">
+          <h2 className="eyebrow text-muted">Mis viajes</h2>
+          <span className="font-display text-lg text-ink">
+            {String(trips.length).padStart(2, "0")}
+          </span>
+        </div>
+        <CreateTripForm createdBy={currentUser.id} onCreated={handleCreated} />
       </div>
 
       {error && (
@@ -47,7 +58,8 @@ export default function TripsPage() {
         <p className="py-10 text-center text-sm text-muted">Cargando viajes…</p>
       ) : trips.length === 0 ? (
         <div className="border border-dashed border-line bg-paper-raised p-10 text-center text-sm text-muted">
-          No estás en ningún viaje todavía.
+          No estás en ningún viaje todavía. Crea el primero con el botón de
+          arriba, o pídele a quien organiza que te agregue con tu correo.
         </div>
       ) : (
         <ul className="grid gap-5 sm:grid-cols-2">

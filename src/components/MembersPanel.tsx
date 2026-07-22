@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMembers } from "@/lib/hooks";
-import { setMemberCanEdit } from "@/lib/supabase/queries";
+import { addMemberByEmail, setMemberCanEdit } from "@/lib/supabase/queries";
 import { Avatar } from "./Avatar";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -22,6 +22,8 @@ export function MembersPanel({
 }) {
   const { members, loading, refetch } = useMembers(tripId);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [adding, setAdding] = useState(false);
 
   async function toggle(memberId: string, next: boolean) {
     setError(null);
@@ -31,6 +33,21 @@ export function MembersPanel({
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo actualizar el permiso.");
     }
+  }
+
+  async function addMember(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setError(null);
+    setAdding(true);
+    const res = await addMemberByEmail(tripId, email);
+    setAdding(false);
+    if (!res.ok) {
+      setError(res.error ?? "No se pudo agregar a esta persona.");
+      return;
+    }
+    setEmail("");
+    refetch();
   }
 
   return (
@@ -112,6 +129,31 @@ export function MembersPanel({
           );
         })}
       </ul>
+
+      {canManage && (
+        <form onSubmit={addMember} className="mt-4 space-y-2 border-t border-line pt-4">
+          <label className="flex flex-col gap-1 eyebrow text-muted">
+            Agregar por correo
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="correo@example.com"
+              className="rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-ink outline-none focus:border-clay focus:ring-1 focus:ring-clay"
+            />
+          </label>
+          <p className="text-[11px] leading-relaxed text-muted">
+            Debe tener ya una cuenta creada en trip2gether.
+          </p>
+          <button
+            type="submit"
+            disabled={!email.trim() || adding}
+            className="w-full rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-paper transition hover:bg-ink/85 disabled:opacity-40"
+          >
+            {adding ? "Agregando…" : "Agregar"}
+          </button>
+        </form>
+      )}
     </aside>
   );
 }
