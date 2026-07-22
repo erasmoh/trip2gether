@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# trip2gether ✈️
 
-## Getting Started
+Planea viajes en grupo: invita a las personas que viajan contigo y coordinen la
+agenda día a día. Cada día tiene actividades con **hora, título, ubicación,
+descripción y comentarios** de cada participante. **Solo las personas invitadas
+a un viaje pueden verlo.**
 
-First, run the development server:
+> Estado actual: conectado a **Supabase** (auth + Postgres con RLS). El
+> esquema vive en [`supabase/migrations`](supabase/migrations); para
+> desarrollo local usa `supabase start` (ver sección Desarrollo).
+
+## Funcionalidades
+
+- **Registro/login sin contraseña (OTP por email)**: cualquiera puede crear
+  una cuenta con su correo, sin invitación previa. Se pide el email →
+  Supabase envía un código de 6 dígitos → se verifica. En el primer ingreso
+  se completa el registro (nombre). Flujo real: `supabase.auth.signInWithOtp({
+  email })` + `verifyOtp({ email, token, type: 'email' })`. Ver o entrar a un
+  viaje específico sigue siendo solo por invitación (el organizador te agrega
+  como miembro).
+- **Lista de viajes** filtrada por membresía: solo ves los viajes a los que te
+  invitaron.
+- **Itinerario por día** con pestañas por cada día del viaje.
+- **Actividades** con hora de inicio/fin, ubicación y descripción.
+- **Comentarios por actividad** de cada participante.
+- **Permisos de edición**: el organizador puede dar o quitar el privilegio de
+  edición a cada invitado. Solo quienes tienen edición pueden crear/editar
+  actividades; el resto tiene acceso de solo lectura.
+- **Sesión persistente** (localStorage) con cierre de sesión desde el menú del
+  header. Cambia de usuario cerrando sesión e ingresando con otro correo
+  invitado para ver cómo cambian el acceso y los permisos.
+
+## Arquitectura de datos
+
+Los tipos viven en [`src/lib/types.ts`](src/lib/types.ts). El esquema real
+(tablas + RLS) está en [`supabase/migrations`](supabase/migrations).
+[`src/lib/store.tsx`](src/lib/store.tsx) solo maneja sesión/auth
+(`requestOtp`, `verifyOtp`, `completeRegistration`, `signOut`); el resto de
+los datos se lee/escribe con las funciones de
+[`src/lib/supabase/queries.ts`](src/lib/supabase/queries.ts) (`fetchVisibleTrips`,
+`fetchTrip`, `insertActivity`, `insertComment`, `setMemberCanEdit`, …), casi
+siempre a través de los hooks de [`src/lib/hooks.ts`](src/lib/hooks.ts).
+El control de acceso lo aplica Postgres vía Row Level Security, no el cliente.
+
+Modelo: `profiles` (mirror de `auth.users`) → `trips` → `trip_members` (rol +
+`can_edit`) → `activities` → `comments`.
+
+## Ideas futuras
+
+- Presupuesto compartido y división de gastos.
+- Votación de propuestas de actividades.
+- Mapa con ubicaciones y clima por día.
+- Checklist de equipaje/documentos.
+- Adjuntar reservas (vuelos, hoteles) y exportar a PDF / calendario `.ics`.
+- Notificaciones de cambios en el itinerario.
+
+## Desarrollo
+
+Requiere [Docker](https://docs.docker.com/get-docker/) y la
+[Supabase CLI](https://supabase.com/docs/guides/cli) para levantar el backend
+local (Postgres + Auth + Studio):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx supabase start           # levanta el stack local (primera vez tarda un poco)
+npx supabase status -o env   # imprime las variables para .env.local
+
+cp .env.example .env.local   # completa NEXT_PUBLIC_SUPABASE_* con lo anterior
+
+npm install
+npm run dev    # http://localhost:3000
+npm run lint
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Los correos (código OTP de acceso) no se envían de verdad en local: quedan
+capturados en Mailpit, `http://127.0.0.1:54324`.

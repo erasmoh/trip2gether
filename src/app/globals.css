@@ -1,26 +1,50 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-paper: #f4f1ea;
+  --color-paper-raised: #fbfaf6;
+  --color-ink: #191410;
+  --color-ink-soft: #4a423a;
+  --color-muted: #8c8375;
+  --color-line: #e2dccf;
+  --color-clay: #bd5136;
+  --color-clay-soft: #f0ddd4;
+  --color-moss: #4b6746;
+
+  --font-sans: var(--font-nunito);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Headings: same friendly sans as the body, just heavier. */
+@utility font-display {
+  font-family: var(--font-nunito), system-ui, sans-serif;
+  font-weight: 800;
+}
+
+/* Tailwind v4 dropped the pointer cursor on buttons; restore it so every
+   clickable control signals interactivity (disabled ones keep the default). */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
+}
+
+:root {
+  --background: #f4f1ea;
+  --foreground: #191410;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-nunito), system-ui, sans-serif;
+}
+
+/* Small uppercase tracked label used for eyebrows/meta. */
+.eyebrow {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
 }
