@@ -5,6 +5,8 @@
 export type MemberRole = "organizer" | "traveler";
 export type InviteStatus = "pending" | "accepted" | "declined";
 
+export type UserPlan = "free" | "paid";
+
 export interface User {
   id: string;
   fullName: string;
@@ -13,10 +15,16 @@ export interface User {
   // Invited people exist as users but haven't completed passwordless
   // registration yet. First successful OTP verify flips this to true.
   registered: boolean;
+  // Subscription tier. Paid accounts unlock premium features such as
+  // claiming a custom short URL (slug) for a trip.
+  plan: UserPlan;
 }
 
 export interface Trip {
-  id: string;
+  id: string; // UUID — used in the URL by default (/trips/<uuid>)
+  // Optional custom short URL (/trips/<slug>). Unique across all trips;
+  // claimable only by paid members with edit rights, and only if not taken.
+  slug?: string;
   name: string;
   destination: string;
   description: string;
@@ -41,11 +49,11 @@ export interface Activity {
   id: string;
   tripId: string;
   dayDate: string; // ISO date (YYYY-MM-DD) — the day this activity belongs to
-  startTime: string; // "HH:MM"
+  startTime?: string; // "HH:MM" — optional; quick-added activities have no time yet
   endTime?: string; // "HH:MM"
   title: string;
   location?: string;
-  description: string;
+  description?: string;
   createdBy: string; // User.id
 }
 
@@ -68,6 +76,8 @@ export interface CommentWithUser extends Comment {
 
 export interface ActivityWithComments extends Activity {
   comments: CommentWithUser[];
+  // Members who have confirmed they're on board with this activity.
+  confirmedBy: User[];
 }
 
 export interface TripDay {

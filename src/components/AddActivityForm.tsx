@@ -4,10 +4,13 @@ import { useState } from "react";
 import { insertActivity } from "@/lib/supabase/queries";
 import { formatDayLabel } from "@/lib/format";
 
+const field =
+  "rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-clay focus:ring-1 focus:ring-clay";
+
 /**
  * Global floating CTA to add an activity from anywhere in the trip page.
- * The form is intentionally minimal (title only); the target day is taken
- * from the currently selected day tab.
+ * The target day is taken from the currently selected day tab; time is
+ * optional so quick-added activities can still skip it.
  */
 export function AddActivityForm({
   tripId,
@@ -22,11 +25,15 @@ export function AddActivityForm({
 }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function close() {
     setTitle("");
+    setStartTime("");
+    setEndTime("");
     setError(null);
     setOpen(false);
   }
@@ -34,10 +41,19 @@ export function AddActivityForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
+    if (startTime && endTime && endTime < startTime) {
+      setError("La hora de fin no puede ser antes que la de inicio.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
-      await insertActivity(tripId, createdBy, { dayDate, title: title.trim() });
+      await insertActivity(tripId, createdBy, {
+        dayDate,
+        title: title.trim(),
+        startTime: startTime || undefined,
+        endTime: endTime || undefined,
+      });
       onAdded();
       close();
     } catch (err) {
@@ -84,10 +100,31 @@ export function AddActivityForm({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Ej. Visita al museo"
-                className="rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-clay focus:ring-1 focus:ring-clay"
+                className={field}
                 required
               />
             </label>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1 eyebrow text-muted">
+                Hora inicio (opcional)
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className={field}
+                />
+              </label>
+              <label className="flex flex-col gap-1 eyebrow text-muted">
+                Hora fin (opcional)
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className={field}
+                />
+              </label>
+            </div>
 
             {error && (
               <p className="border-l-2 border-clay bg-clay-soft/60 px-3 py-2 text-xs text-ink-soft">

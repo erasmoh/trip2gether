@@ -253,11 +253,11 @@ export async function addMemberByEmail(tripId: string, rawEmail: string): Promis
   return { ok: true };
 }
 
-/** Activities for a trip, grouped by day and with their comments attached (nested select). */
+/** Activities for a trip, grouped by day and with their comments + confirmations attached (nested select). */
 export async function fetchDays(tripId: string): Promise<TripDay[]> {
   const { data, error } = await supabase
     .from("activities")
-    .select("*, comments(*, user:profiles(*))")
+    .select("*, comments(*, user:profiles(*)), activity_confirmations(user:profiles(*))")
     .eq("trip_id", tripId);
   if (error) throw new Error(error.message);
 
@@ -268,7 +268,11 @@ export async function fetchDays(tripId: string): Promise<TripDay[]> {
       .map((c) => ({ ...mapComment(c), user: mapProfile(c.user) }))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
-    const activity: ActivityWithComments = { ...mapActivity(row), comments };
+    const confirmedBy: User[] = row.activity_confirmations
+      .filter((c): c is typeof c & { user: ProfileRow } => c.user !== null)
+      .map((c) => mapProfile(c.user));
+
+    const activity: ActivityWithComments = { ...mapActivity(row), comments, confirmedBy };
     const bucket = byDate.get(activity.dayDate) ?? [];
     bucket.push(activity);
     byDate.set(activity.dayDate, bucket);
@@ -332,6 +336,41 @@ export async function insertComment(
     .single();
   if (error) throw new Error(error.message);
   return mapComment(data);
+}
+
+/** Confirm/un-confirm the current user's agreement with an activity. An
+ *  activity counts as fully confirmed once every trip member has one of
+ *  these rows (checked client-side against the member list, see
+ *  isFullyConfirmed). */
+export async function setActivityConfirmation(
+  activityId: string,
+  userId: string,
+  confirmed: boolean,
+): Promise<void> {
+  if (confirmed) {
+    const { error } = await supabase
+      .from("activity_confirmations")
+      .insert({ activity_id: activityId, user_id: userId });
+    // Ignore "already confirmed" races (unique violation) — end state is the same.
+    if (error && error.code !== "23505") throw new Error(error.message);
+  } else {
+    const { error } = await supabase
+      .from("activity_confirmations")
+      .delete()
+      .eq("activity_id", activityId)
+      .eq("user_id", userId);
+    if (error) throw new Error(error.message);
+  }
+}
+
+/** True once every member of `tripMemberIds` has confirmed the activity. */
+export function isFullyConfirmed(
+  activity: Pick<ActivityWithComments, "confirmedBy">,
+  tripMemberIds: string[],
+): boolean {
+  if (tripMemberIds.length === 0) return false;
+  const confirmedIds = new Set(activity.confirmedBy.map((u) => u.id));
+  return tripMemberIds.every((id) => confirmedIds.has(id));
 }
 
 export interface SetSlugResult {

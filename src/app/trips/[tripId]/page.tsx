@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { use, useState } from "react";
-import { useTrip, useDays, useMembership } from "@/lib/hooks";
+import { useTrip, useDays, useMembers, useMembership } from "@/lib/hooks";
 import { canEditFromMembership } from "@/lib/supabase/queries";
 import { ActivityCard } from "@/components/ActivityCard";
 import { AddActivityForm } from "@/components/AddActivityForm";
+import { ConfirmedActivitiesPanel } from "@/components/ConfirmedActivitiesPanel";
 import { MembersPanel } from "@/components/MembersPanel";
 import { TripLinkPanel } from "@/components/TripLinkPanel";
 import { formatDateRange, formatDayLabel } from "@/lib/format";
@@ -25,6 +26,8 @@ export default function TripPage({
     user?.id ?? null,
   );
   const { days, refetch: refetchDays } = useDays(trip?.id ?? null);
+  const { members } = useMembers(trip?.id ?? null);
+  const memberIds = members.map((m) => m.userId);
   const [activeDate, setActiveDate] = useState<string | null>(
     days[0]?.date ?? trip?.startDate ?? null,
   );
@@ -81,20 +84,21 @@ export default function TripPage({
             </div>
           )}
 
-          {/* Day tabs */}
-          <div className="flex gap-2 overflow-x-auto border-b border-line pb-3">
+          {/* Day tabs — wrap onto extra lines instead of horizontal-scrolling
+              once there are more than a handful of days. */}
+          <div className="flex flex-wrap gap-1.5 border-b border-line pb-3">
             {dateTabs.map((date, i) => (
               <button
                 key={date}
                 type="button"
                 onClick={() => setActiveDate(date)}
-                className={`shrink-0 rounded-full border px-4 py-1.5 text-sm transition ${
+                className={`rounded-full border px-2.5 py-1 text-xs transition ${
                   date === selectedDate
                     ? "border-ink bg-ink text-paper"
                     : "border-line bg-paper-raised text-ink-soft hover:border-ink/30"
                 }`}
               >
-                <span className="mr-1.5 font-mono text-[11px] opacity-60">
+                <span className="mr-1 font-mono text-[10px] opacity-60">
                   D{i + 1}
                 </span>
                 {formatDayLabel(date)}
@@ -110,7 +114,9 @@ export default function TripPage({
                   key={a.id}
                   activity={a}
                   currentUserId={user.id}
+                  memberIds={memberIds}
                   onCommentAdded={refetchDays}
+                  onConfirmationChanged={refetchDays}
                 />
               ))
             ) : (
@@ -126,6 +132,11 @@ export default function TripPage({
             tripId={trip.id}
             currentUserId={user.id}
             canManage={membership?.role === "organizer"}
+          />
+          <ConfirmedActivitiesPanel
+            days={days}
+            memberIds={memberIds}
+            onSelectDay={setActiveDate}
           />
           <TripLinkPanel
             trip={trip}

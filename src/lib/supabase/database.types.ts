@@ -88,6 +88,42 @@ export type Database = {
           },
         ]
       }
+      activity_confirmations: {
+        Row: {
+          activity_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_confirmations_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_confirmations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           activity_id: string
@@ -253,6 +289,7 @@ export type Database = {
     Functions: {
       can_edit_trip: { Args: { _trip_id: string }; Returns: boolean }
       is_trip_member: { Args: { _trip_id: string }; Returns: boolean }
+      is_trip_organizer: { Args: { _trip_id: string }; Returns: boolean }
     }
     Enums: {
       invite_status: "pending" | "accepted" | "declined"
