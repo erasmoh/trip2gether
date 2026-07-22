@@ -1,9 +1,9 @@
 -- ---------------------------------------------------------------------------
--- Trip2gether — planned Supabase schema (NOT yet connected).
+-- Trip2gether — initial schema.
 --
--- The frontend currently runs on an in-memory mock store (src/lib/mock-data.ts
--- + src/lib/store.tsx) whose shapes mirror these tables. When Supabase is wired
--- in, the store's selectors/mutations map 1:1 to queries against these tables.
+-- Mirrors the shapes in src/lib/types.ts. The client reads/writes these
+-- tables directly through supabase-js (see src/lib/supabase/queries.ts);
+-- there is no separate API layer.
 --
 -- Access control is enforced with Row Level Security: a row is only visible to
 -- users who are members of the corresponding trip. Editing itinerary content
@@ -13,8 +13,8 @@
 create extension if not exists "pgcrypto";
 
 -- Profiles mirror auth.users (Supabase Auth) with app-specific fields.
--- Auth is passwordless (email OTP / magic link): supabase.auth.signInWithOtp
--- then supabase.auth.verifyOtp. `registered` flips to true once an invited user
+-- Auth is passwordless (email OTP): supabase.auth.signInWithOtp then
+-- supabase.auth.verifyOtp. `registered` flips to true once an invited user
 -- completes their profile (full_name) on first login.
 create table if not exists public.profiles (
   id            uuid primary key references auth.users (id) on delete cascade,
@@ -137,6 +137,17 @@ returns boolean language sql security definer stable as $$
   );
 $$;
 
+-- Security definer (like the two functions above) so that policies on
+-- trip_members itself can call this without re-triggering their own RLS
+-- check on trip_members, which would otherwise be infinite recursion.
+create or replace function public.is_trip_organizer(_trip_id uuid)
+returns boolean language sql security definer stable as $$
+  select exists (
+    select 1 from public.trip_members m
+    where m.trip_id = _trip_id and m.user_id = auth.uid() and m.role = 'organizer'
+  );
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------------
@@ -164,14 +175,7 @@ create policy "trips_update_editors" on public.trips
 create policy "members_select" on public.trip_members
   for select using (public.is_trip_member(trip_id));
 create policy "members_manage_by_organizer" on public.trip_members
-  for all using (
-    exists (
-      select 1 from public.trip_members o
-      where o.trip_id = trip_members.trip_id
-        and o.user_id = auth.uid()
-        and o.role = 'organizer'
-    )
-  );
+  for all using (public.is_trip_organizer(trip_id));
 
 -- Activities: members read; editors create/update/delete.
 create policy "activities_select" on public.activities
