@@ -73,6 +73,7 @@ function mapActivity(row: ActivityRow): Activity {
     location: row.location ?? undefined,
     description: row.description,
     createdBy: row.created_by,
+    sortOrder: row.sort_order,
   };
 }
 
@@ -121,6 +122,19 @@ export async function fetchVisibleTrips(): Promise<Trip[]> {
     .order("start_date", { ascending: true });
   if (error) throw new Error(error.message);
   return data.map(mapTrip);
+}
+
+/** RLS (trips_update_editors) enforces edit rights; this can be called any
+ *  time after creation, not just at trip creation. */
+export async function updateTripDescription(tripId: string, description: string): Promise<Trip> {
+  const { data, error } = await supabase
+    .from("trips")
+    .update({ description })
+    .eq("id", tripId)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return mapTrip(data);
 }
 
 export interface NewTripInput {
@@ -281,13 +295,9 @@ export async function fetchDays(tripId: string): Promise<TripDay[]> {
   return Array.from(byDate.entries())
     .map(([date, activities]) => ({
       date,
-      // Timed activities first (chronological); untimed ones keep insertion order at the end.
-      activities: activities.sort((a, b) => {
-        if (a.startTime && b.startTime) return a.startTime.localeCompare(b.startTime);
-        if (a.startTime) return -1;
-        if (b.startTime) return 1;
-        return 0;
-      }),
+      // Manual order (see sort_order's migration comment) — drag-and-drop is
+      // the only thing that changes this after creation; time is just a label.
+      activities: activities.sort((a, b) => a.sortOrder - b.sortOrder),
     }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
@@ -306,6 +316,18 @@ export async function insertActivity(
   createdBy: string,
   input: NewActivityInput,
 ): Promise<Activity> {
+  // New activities go to the end of their day's list; drag-and-drop handles
+  // everything from there.
+  const { data: last, error: lastErr } = await supabase
+    .from("activities")
+    .select("sort_order")
+    .eq("trip_id", tripId)
+    .eq("day_date", input.dayDate)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  if (lastErr) throw new Error(lastErr.message);
+  const nextOrder = last.length > 0 ? last[0].sort_order + 1 : 0;
+
   const { data, error } = await supabase
     .from("activities")
     .insert({
@@ -317,11 +339,24 @@ export async function insertActivity(
       end_time: input.endTime,
       location: input.location,
       description: input.description,
+      sort_order: nextOrder,
     })
     .select("*")
     .single();
   if (error) throw new Error(error.message);
   return mapActivity(data);
+}
+
+/** Persists a new manual order for a day's activities after a drag-and-drop
+ *  (orderedIds is the full list for that day, in its new order). */
+export async function reorderActivities(orderedIds: string[]): Promise<void> {
+  const results = await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("activities").update({ sort_order: index }).eq("id", id),
+    ),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw new Error(firstError.message);
 }
 
 export async function insertComment(

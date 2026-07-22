@@ -5,6 +5,13 @@ import type { Activity, Comment, Trip, TripMember, User } from "./types";
 // can be swapped for real queries later without touching the UI.
 // ---------------------------------------------------------------------------
 
+// Trip ids are UUIDs, matching the Supabase `trips.id` column
+// (gen_random_uuid()). They are what shows in the URL unless the trip has a
+// custom slug.
+const T_JAPAN = "3f9a2c4e-7b1d-4e6a-9c2f-5d8e1a7b3c90";
+const T_PATAGONIA = "b7e3d1f5-2a8c-4f0b-8e6d-1c9a4b2f7e35";
+const T_LISBON = "6d2f8b1a-9e4c-4a7d-b3f0-8a5c2e9d1b46";
+
 export const users: User[] = [
   {
     id: "u_ana",
@@ -12,6 +19,8 @@ export const users: User[] = [
     email: "ana@example.com",
     avatarColor: "#f97316",
     registered: true,
+    // Cuenta de pago: puede reclamar URLs cortas personalizadas.
+    plan: "paid",
   },
   {
     id: "u_bruno",
@@ -19,6 +28,7 @@ export const users: User[] = [
     email: "bruno@example.com",
     avatarColor: "#3b82f6",
     registered: true,
+    plan: "free",
   },
   {
     id: "u_carla",
@@ -27,6 +37,7 @@ export const users: User[] = [
     avatarColor: "#10b981",
     // Invitada pero aún no completa su registro (para probar el alta por OTP).
     registered: false,
+    plan: "paid",
   },
   {
     id: "u_diego",
@@ -34,6 +45,7 @@ export const users: User[] = [
     email: "diego@example.com",
     avatarColor: "#a855f7",
     registered: true,
+    plan: "free",
   },
   {
     id: "u_elena",
@@ -41,12 +53,13 @@ export const users: User[] = [
     email: "elena@example.com",
     avatarColor: "#ec4899",
     registered: false,
+    plan: "free",
   },
 ];
 
 export const trips: Trip[] = [
   {
-    id: "t_japan",
+    id: T_JAPAN,
     name: "Aventura en Japón",
     destination: "Tokio & Kioto, Japón",
     description:
@@ -57,7 +70,7 @@ export const trips: Trip[] = [
     createdBy: "u_ana",
   },
   {
-    id: "t_patagonia",
+    id: T_PATAGONIA,
     name: "Trekking en Patagonia",
     destination: "El Chaltén, Argentina",
     description:
@@ -68,7 +81,10 @@ export const trips: Trip[] = [
     createdBy: "u_bruno",
   },
   {
-    id: "t_lisbon",
+    id: T_LISBON,
+    // URL corta reclamada por Carla (cuenta de pago). Sirve para probar la
+    // resolución por slug y los errores de "ya está en uso".
+    slug: "lisboa-finde",
     name: "Fin de semana en Lisboa",
     destination: "Lisboa, Portugal",
     description:
@@ -82,23 +98,23 @@ export const trips: Trip[] = [
 
 export const tripMembers: TripMember[] = [
   // Japón: Ana (org), Bruno, Carla
-  { id: "m_1", tripId: "t_japan", userId: "u_ana", role: "organizer", status: "accepted", canEdit: true },
-  { id: "m_2", tripId: "t_japan", userId: "u_bruno", role: "traveler", status: "accepted", canEdit: true },
-  { id: "m_3", tripId: "t_japan", userId: "u_carla", role: "traveler", status: "pending", canEdit: false },
+  { id: "m_1", tripId: T_JAPAN, userId: "u_ana", role: "organizer", status: "accepted", canEdit: true },
+  { id: "m_2", tripId: T_JAPAN, userId: "u_bruno", role: "traveler", status: "accepted", canEdit: true },
+  { id: "m_3", tripId: T_JAPAN, userId: "u_carla", role: "traveler", status: "pending", canEdit: false },
   // Patagonia: Bruno (org), Diego, Ana
-  { id: "m_4", tripId: "t_patagonia", userId: "u_bruno", role: "organizer", status: "accepted", canEdit: true },
-  { id: "m_5", tripId: "t_patagonia", userId: "u_diego", role: "traveler", status: "accepted", canEdit: true },
-  { id: "m_6", tripId: "t_patagonia", userId: "u_ana", role: "traveler", status: "accepted", canEdit: false },
+  { id: "m_4", tripId: T_PATAGONIA, userId: "u_bruno", role: "organizer", status: "accepted", canEdit: true },
+  { id: "m_5", tripId: T_PATAGONIA, userId: "u_diego", role: "traveler", status: "accepted", canEdit: true },
+  { id: "m_6", tripId: T_PATAGONIA, userId: "u_ana", role: "traveler", status: "accepted", canEdit: false },
   // Lisboa: Carla (org), Elena
-  { id: "m_7", tripId: "t_lisbon", userId: "u_carla", role: "organizer", status: "accepted", canEdit: true },
-  { id: "m_8", tripId: "t_lisbon", userId: "u_elena", role: "traveler", status: "accepted", canEdit: false },
+  { id: "m_7", tripId: T_LISBON, userId: "u_carla", role: "organizer", status: "accepted", canEdit: true },
+  { id: "m_8", tripId: T_LISBON, userId: "u_elena", role: "traveler", status: "accepted", canEdit: false },
 ];
 
 export const activities: Activity[] = [
   // --- Japón day 1 ---
   {
     id: "a_1",
-    tripId: "t_japan",
+    tripId: T_JAPAN,
     dayDate: "2026-04-03",
     startTime: "09:00",
     endTime: "11:00",
@@ -106,10 +122,11 @@ export const activities: Activity[] = [
     location: "Tsukiji Outer Market",
     description: "Desayuno de sushi y street food. Llegar temprano para evitar filas.",
     createdBy: "u_ana",
+    sortOrder: 0,
   },
   {
     id: "a_2",
-    tripId: "t_japan",
+    tripId: T_JAPAN,
     dayDate: "2026-04-03",
     startTime: "14:00",
     endTime: "17:00",
@@ -117,11 +134,12 @@ export const activities: Activity[] = [
     location: "Asakusa",
     description: "Paseo por Nakamise y el templo. Comprar amuletos omamori.",
     createdBy: "u_bruno",
+    sortOrder: 1,
   },
   // --- Japón day 2 ---
   {
     id: "a_3",
-    tripId: "t_japan",
+    tripId: T_JAPAN,
     dayDate: "2026-04-04",
     startTime: "08:30",
     endTime: "12:00",
@@ -129,21 +147,23 @@ export const activities: Activity[] = [
     location: "Estación de Tokio",
     description: "Reservar asientos lado monte Fuji. Comprar bento para el viaje.",
     createdBy: "u_ana",
+    sortOrder: 0,
   },
   {
     id: "a_4",
-    tripId: "t_japan",
+    tripId: T_JAPAN,
     dayDate: "2026-04-04",
     startTime: "15:00",
     title: "Fushimi Inari",
     location: "Kioto",
     description: "Caminata entre los mil toriis al atardecer.",
     createdBy: "u_ana",
+    sortOrder: 1,
   },
   // --- Patagonia day 1 ---
   {
     id: "a_5",
-    tripId: "t_patagonia",
+    tripId: T_PATAGONIA,
     dayDate: "2026-11-14",
     startTime: "07:00",
     endTime: "16:00",
@@ -151,10 +171,11 @@ export const activities: Activity[] = [
     location: "Sendero Fitz Roy",
     description: "Trekking exigente de 8h. Llevar 2L de agua y snacks.",
     createdBy: "u_bruno",
+    sortOrder: 0,
   },
   {
     id: "a_6",
-    tripId: "t_patagonia",
+    tripId: T_PATAGONIA,
     dayDate: "2026-11-15",
     startTime: "10:00",
     endTime: "13:00",
@@ -162,11 +183,12 @@ export const activities: Activity[] = [
     location: "Bahía Túnel",
     description: "Excursión en barco al glaciar. Reservar con anticipación.",
     createdBy: "u_diego",
+    sortOrder: 0,
   },
   // --- Lisboa day 1 ---
   {
     id: "a_7",
-    tripId: "t_lisbon",
+    tripId: T_LISBON,
     dayDate: "2026-06-19",
     startTime: "10:00",
     endTime: "12:30",
@@ -174,16 +196,18 @@ export const activities: Activity[] = [
     location: "Martim Moniz",
     description: "Recorrido clásico y paseo por los callejones de la Alfama.",
     createdBy: "u_carla",
+    sortOrder: 0,
   },
   {
     id: "a_8",
-    tripId: "t_lisbon",
+    tripId: T_LISBON,
     dayDate: "2026-06-19",
     startTime: "20:00",
     title: "Cena con fado",
     location: "Alfama",
     description: "Reservar mesa en casa de fado. Probar bacalao à brás.",
     createdBy: "u_elena",
+    sortOrder: 1,
   },
 ];
 

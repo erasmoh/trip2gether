@@ -2,12 +2,23 @@
 
 import Link from "next/link";
 import { use, useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useTrip, useDays, useMembers, useMembership } from "@/lib/hooks";
-import { canEditFromMembership } from "@/lib/supabase/queries";
-import { ActivityCard } from "@/components/ActivityCard";
+import { canEditFromMembership, reorderActivities } from "@/lib/supabase/queries";
 import { AddActivityForm } from "@/components/AddActivityForm";
 import { ConfirmedActivitiesPanel } from "@/components/ConfirmedActivitiesPanel";
 import { MembersPanel } from "@/components/MembersPanel";
+import { SortableActivityCard } from "@/components/SortableActivityCard";
+import { TripDescription } from "@/components/TripDescription";
 import { TripLinkPanel } from "@/components/TripLinkPanel";
 import { formatDateRange, formatDayLabel } from "@/lib/format";
 import { useRequireAuth } from "@/lib/useRequireAuth";
@@ -20,7 +31,7 @@ export default function TripPage({
   // The segment accepts the trip UUID or its custom short slug.
   const { tripId: tripRef } = use(params);
   const { user } = useRequireAuth();
-  const { trip, loading: tripLoading } = useTrip(tripRef);
+  const { trip, loading: tripLoading, refetch: refetchTrip } = useTrip(tripRef);
   const { membership, loading: membershipLoading } = useMembership(
     trip?.id ?? null,
     user?.id ?? null,
@@ -30,6 +41,14 @@ export default function TripPage({
   const memberIds = members.map((m) => m.userId);
   const [activeDate, setActiveDate] = useState<string | null>(
     days[0]?.date ?? trip?.startDate ?? null,
+  );
+  // Optimistic override for the active day's activity order while a
+  // drag-and-drop is being persisted, so the list doesn't snap back to the
+  // old order before refetchDays() resolves. Cleared once that settles.
+  const [dragOrder, setDragOrder] = useState<string[] | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
   );
 
   if (!user || tripLoading || membershipLoading) {
@@ -43,9 +62,37 @@ export default function TripPage({
   const canEdit = canEditFromMembership(membership);
   const selectedDate = activeDate ?? days[0]?.date ?? trip.startDate;
   const activeDay = days.find((d) => d.date === selectedDate);
+  const activities =
+    dragOrder && activeDay
+      ? (dragOrder
+          .map((id) => activeDay.activities.find((a) => a.id === id))
+          .filter(Boolean) as typeof activeDay.activities)
+      : activeDay?.activities ?? [];
 
   // Build the tab list from the trip's date range so empty days still show.
   const dateTabs = buildDateRange(trip.startDate, trip.endDate);
+
+  function selectDay(date: string) {
+    setDragOrder(null);
+    setActiveDate(date);
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id || activities.length === 0) return;
+    const ids = activities.map((a) => a.id);
+    const oldIndex = ids.indexOf(String(active.id));
+    const newIndex = ids.indexOf(String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    const nextIds = arrayMove(ids, oldIndex, newIndex);
+    setDragOrder(nextIds);
+    try {
+      await reorderActivities(nextIds);
+      await refetchDays();
+    } finally {
+      setDragOrder(null);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -70,9 +117,12 @@ export default function TripPage({
         <p className="eyebrow mt-4 text-clay">
           {formatDateRange(trip.startDate, trip.endDate)}
         </p>
-        <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-soft">
-          {trip.description}
-        </p>
+        <TripDescription
+          tripId={trip.id}
+          description={trip.description}
+          canEdit={canEdit}
+          onUpdated={refetchTrip}
+        />
       </header>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_18rem]">
@@ -91,7 +141,7 @@ export default function TripPage({
               <button
                 key={date}
                 type="button"
-                onClick={() => setActiveDate(date)}
+                onClick={() => selectDay(date)}
                 className={`rounded-full border px-2.5 py-1 text-xs transition ${
                   date === selectedDate
                     ? "border-ink bg-ink text-paper"
@@ -106,25 +156,30 @@ export default function TripPage({
             ))}
           </div>
 
-          {/* Activities for the selected day */}
-          <div className="space-y-3">
-            {activeDay && activeDay.activities.length > 0 ? (
-              activeDay.activities.map((a) => (
-                <ActivityCard
-                  key={a.id}
-                  activity={a}
-                  currentUserId={user.id}
-                  memberIds={memberIds}
-                  onCommentAdded={refetchDays}
-                  onConfirmationChanged={refetchDays}
-                />
-              ))
-            ) : (
-              <p className="border border-dashed border-line bg-paper-raised p-6 text-center text-sm text-muted">
-                Sin actividades para este día todavía.
-              </p>
-            )}
-          </div>
+          {/* Activities for the selected day — drag the handle to reorder. */}
+          {activities.length > 0 ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={activities.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-3">
+                  {activities.map((a) => (
+                    <SortableActivityCard
+                      key={a.id}
+                      activity={a}
+                      draggable={canEdit}
+                      currentUserId={user.id}
+                      memberIds={memberIds}
+                      onCommentAdded={refetchDays}
+                      onConfirmationChanged={refetchDays}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <p className="border border-dashed border-line bg-paper-raised p-6 text-center text-sm text-muted">
+              Sin actividades para este día todavía.
+            </p>
+          )}
         </section>
 
         <div className="space-y-5">
@@ -136,7 +191,7 @@ export default function TripPage({
           <ConfirmedActivitiesPanel
             days={days}
             memberIds={memberIds}
-            onSelectDay={setActiveDate}
+            onSelectDay={selectDay}
           />
           <TripLinkPanel
             trip={trip}

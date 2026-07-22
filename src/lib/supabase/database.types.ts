@@ -43,6 +43,7 @@ export type Database = {
           end_time: string | null
           id: string
           location: string | null
+          sort_order: number
           start_time: string | null
           title: string
           trip_id: string
@@ -55,6 +56,7 @@ export type Database = {
           end_time?: string | null
           id?: string
           location?: string | null
+          sort_order?: number
           start_time?: string | null
           title: string
           trip_id: string
@@ -67,6 +69,7 @@ export type Database = {
           end_time?: string | null
           id?: string
           location?: string | null
+          sort_order?: number
           start_time?: string | null
           title?: string
           trip_id?: string

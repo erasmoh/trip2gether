@@ -55,6 +55,9 @@ export interface Activity {
   location?: string;
   description?: string;
   createdBy: string; // User.id
+  // Manual display order within its day (lower first). Drag-and-drop is the
+  // only thing that changes this after creation — time is just a label.
+  sortOrder: number;
 }
 
 export interface Comment {
